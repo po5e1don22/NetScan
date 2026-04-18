@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.20)
+project (NetScan)
+
+set (SOURCES
+    src/main.cpp
+    src/suricata/suricata_runner.cpp)
+
+add_executable(NetScan ${SOURCES})
+
+target_include_directories(NetScan PRIVATE src)
