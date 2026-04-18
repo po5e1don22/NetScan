@@ -3,7 +3,8 @@ project (NetScan)
 
 set (SOURCES
     src/main.cpp
-    src/suricata/suricata_runner.cpp)
+    src/suricata/suricata_runner.cpp
+    src/core/analyzer.cpp)
 
 add_executable(NetScan ${SOURCES})
 

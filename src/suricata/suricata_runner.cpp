@@ -19,7 +19,7 @@ std::string generate_output_dir (const std::string& base_dir)
     return ss.str();
 }
 
-bool run_suricata(const std::string& pcap_file, const std::string& base_output_dir)
+std::string run_suricata(const std::string& pcap_file, const std::string& base_output_dir)
 {
     std::string output_dir = generate_output_dir(base_output_dir);
 
@@ -34,7 +34,7 @@ bool run_suricata(const std::string& pcap_file, const std::string& base_output_d
     catch(const std::exception& e)
     {
         std::cerr << "[ERROR] Faild to create directory: " << e.what() << std::endl;
-        return false;
+        return "";
     }
 
     //suricata run command 
@@ -46,7 +46,7 @@ bool run_suricata(const std::string& pcap_file, const std::string& base_output_d
     if (result !=0)
     {
         std::cerr << "[ERROR] Suricata failed with code:" << result << std::endl;
-        return false;
+        return "";
     }
-    return true;
+    return output_dir;
 }
