@@ -4,7 +4,8 @@ project (NetScan)
 set (SOURCES
     src/main.cpp
     src/suricata/suricata_runner.cpp
-    src/core/analyzer.cpp)
+    src/core/analyzer.cpp
+    src/core/fingerprint_db.cpp)
 
 add_executable(NetScan ${SOURCES})
 
