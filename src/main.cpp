@@ -3,6 +3,8 @@
 #include "suricata/suricata_runner.h"
 #include "core/analyzer.h"
 #include "core/fingerprint_db.h"
+#include "core/matcher.h"
+
 int main(int argc, char* argv[])
 {
     if (argc < 2)
@@ -34,8 +36,9 @@ int main(int argc, char* argv[])
                   << " | JA3S: " << r.ja3s
                   << std::endl;
     }
-    
+
     auto db = load_fingerprints("data/fingerprints.json");
 
+    match_fingerprints(records, db);
     return 0;
 }
