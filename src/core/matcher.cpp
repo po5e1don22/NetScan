@@ -6,44 +6,83 @@
 #include <unordered_map>
 #include <iostream>
 
-void match_fingerprints(const std::vector<JA3Record>& records, const std::unordered_map<std::string, FingerprintMeta>& db)
+void match_fingerprints(const std::vector<JA3Record>& records, const FingerprintDB& db)
 {
     for (const auto& r : records)
     {
         std::cout << "--------------------------------\n";
         std::cout << r.src_ip << " -> " << r.dest_ip << std::endl;
         
-        if (r.ja3.empty())
-        {
-            std::cout << "[SKIP] No JA3" << std::endl;
-            continue;
-        }
-        auto it = db.find(r.ja3);
+        //ja3 + ja3s match
+        bool full_match_found = false;
 
-        if (it != db.end())
+        if (!r.ja3.empty() && !r.ja3s.empty())
         {
-            const auto& meta = it -> second;
-            
-            std::cout << "[MATCH]\n";
-            std::cout << "JA3: " << r.ja3 << "\n";
-            std::cout << "Label: " << meta.label << "\n";
-            std::cout << "Category: " << meta.category << "\n";
-            std::cout << "Source: " << meta.source << "\n";
-            std::cout << "Notes: " << meta.notes << "\n";
-        }
-        else
-        {
-            std::cout << "[UNKNOWN]\n";
-            std::cout << "JA3: " << r.ja3 << "\n";
-
-            char choice;
-            std::cout << "Add to DB? (y/n): ";
-            std::cin >> choice;
-
-            if (choice == 'y' || choice == 'Y')
+            for (const auto& meta : db.full_pairs)
             {
-                add_unknown_fingerprint(r, "data/fingerprints.json");
+                if (meta.ja3 == r.ja3 && meta.ja3s == r.ja3s)
+                {
+                    std::cout << "[FULL MATCH]\n";
+                    std::cout << "JA3: " << r.ja3 << "\n";
+                    std::cout << "JA3S: " << r.ja3s << "\n";
+                    std::cout << "Label: " << meta.label << "\n";
+                    std::cout << "Category: " << meta.category << "\n";
+                    std::cout << "Source: " << meta.source << "\n";
+                    std::cout << "Notes: " << meta.notes << "\n";
+
+                    full_match_found = true;
+                    break;
+                }
             }
         }
+        if (full_match_found)
+            continue;
+
+        //ja3 match
+        if (!r.ja3.empty())
+        {
+            auto it = db.ja3_map.find(r.ja3);
+            if (it != db.ja3_map.end())
+            {
+                const auto& meta = it->second;
+
+                std::cout << "[WEAK MATCH - JA3]\n";
+                std::cout << "JA3: " << r.ja3 << "\n";
+                std::cout << "Label: " << meta.label << "\n";
+                std::cout << "Category: " << meta.category << "\n";
+                std::cout << "Source: " << meta.source << "\n";
+                std::cout << "Notes: " << meta.notes << "\n";
+
+                continue;
+            }
+        }
+
+        //ja3s match
+        if (!r.ja3s.empty())
+        {
+            auto it = db.ja3s_map.find(r.ja3s);
+            if (it != db.ja3s_map.end())
+            {
+                const auto& meta = it->second;
+
+                std::cout << "[WEAK MATCH - JA3S]\n";
+                std::cout << "JA3S: " << r.ja3s << "\n";
+                std::cout << "Label: " << meta.label << "\n";
+                std::cout << "Category: " << meta.category << "\n";
+                std::cout << "Source: " << meta.source << "\n";
+                std::cout << "Notes: " << meta.notes << "\n";
+
+                continue;
+            }
+        }
+
+        //unknown
+        std::cout << "[UNKNOWN]\n";
+
+        if (!r.ja3.empty())
+            std::cout << "JA3: " << r.ja3 << "\n";
+
+        if (!r.ja3s.empty())
+            std::cout << "JA3S: " << r.ja3s << "\n";
     }
 }

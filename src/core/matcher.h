@@ -4,6 +4,5 @@
 #include "fingerprint_db.h"
 
 #include <vector>
-#include <unordered_map>
 
-void match_fingerprints(const std::vector<JA3Record>& records, const std::unordered_map<std::string, FingerprintMeta>& db);
+void match_fingerprints(const std::vector<JA3Record>& records, const FingerprintDB& db);
