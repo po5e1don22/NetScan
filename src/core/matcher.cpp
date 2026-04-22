@@ -1,5 +1,6 @@
 #include "ja3.h"
 #include "fingerprint_db.h"
+#include "db_writer.h"
 
 #include <vector>
 #include <unordered_map>
@@ -34,6 +35,15 @@ void match_fingerprints(const std::vector<JA3Record>& records, const std::unorde
         {
             std::cout << "[UNKNOWN]\n";
             std::cout << "JA3: " << r.ja3 << "\n";
+
+            char choice;
+            std::cout << "Add to DB? (y/n): ";
+            std::cin >> choice;
+
+            if (choice == 'y' || choice == 'Y')
+            {
+                add_unknown_fingerprint(r, "data/fingerprints.json");
+            }
         }
     }
 }

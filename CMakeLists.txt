@@ -6,7 +6,8 @@ set (SOURCES
     src/suricata/suricata_runner.cpp
     src/core/analyzer.cpp
     src/core/fingerprint_db.cpp
-    src/core/matcher.cpp)
+    src/core/matcher.cpp
+    src/core/db_writer.cpp)
 
 add_executable(NetScan ${SOURCES})
 
