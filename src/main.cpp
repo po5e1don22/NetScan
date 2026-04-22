@@ -1,12 +1,17 @@
 #include <iostream>
+#include <thread>
 
 #include "suricata/suricata_runner.h"
 #include "core/analyzer.h"
 #include "core/fingerprint_db.h"
 #include "core/matcher.h"
+#include "core/queue_worker.h"
 
 int main(int argc, char* argv[])
 {
+    std::thread worker(process_unknowns);
+    worker.detach();
+
     if (argc < 2)
     {
         std::cerr << "Usage: " << argv[0]

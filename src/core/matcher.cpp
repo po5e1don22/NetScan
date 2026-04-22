@@ -1,6 +1,7 @@
 #include "ja3.h"
 #include "fingerprint_db.h"
 #include "db_writer.h"
+#include "unknown_queue.h"
 
 #include <vector>
 #include <unordered_map>
@@ -77,14 +78,9 @@ void match_fingerprints(const std::vector<JA3Record>& records, const Fingerprint
         }
 
         //unknown
-        std::cout << "[UNKNOWN]\n";
-
-        if (!r.ja3.empty())
-            std::cout << "JA3: " << r.ja3 << "\n";
-
-        if (!r.ja3s.empty())
-            std::cout << "JA3S: " << r.ja3s << "\n";
-
-        add_unknown_fingerprint(r, "data/fingerprints.json");
+        {
+            std::lock_guard<std::mutex> lock(queue_mutex);
+            unknown_queue.push(r);
+        }
     }
 }
