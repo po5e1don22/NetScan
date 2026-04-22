@@ -84,5 +84,7 @@ void match_fingerprints(const std::vector<JA3Record>& records, const Fingerprint
 
         if (!r.ja3s.empty())
             std::cout << "JA3S: " << r.ja3s << "\n";
+
+        add_unknown_fingerprint(r, "data/fingerprints.json");
     }
 }
