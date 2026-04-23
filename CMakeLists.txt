@@ -9,9 +9,11 @@ set (IMGUI_SOURCES
     src/third_party/imgui/backends/imgui_impl_glfw.cpp
     src/third_party/imgui/backends/imgui_impl_opengl3.cpp)
 
+set (IMGUI_DIALOG_SOURCES
+    src/third_party/imgui_dialog/ImGuiFileDialog.cpp)
+
 set (SOURCES
     src/main.cpp
-
     src/suricata/suricata_runner.cpp
     src/core/analyzer.cpp
     src/core/fingerprint_db.cpp
@@ -24,13 +26,15 @@ set (SOURCES
 
 add_executable(NetScan 
     ${SOURCES}
-    ${IMGUI_SOURCES})
+    ${IMGUI_SOURCES}
+    ${IMGUI_DIALOG_SOURCES})
 
 target_include_directories(NetScan
     PRIVATE
         src
         src/third_party/imgui
-        src/third_party/imgui/backends)
+        src/third_party/imgui/backends
+        src/third_party/imgui_dialog)
 
 find_package(glfw3 REQUIRED)
 find_package(OpenGL REQUIRED)

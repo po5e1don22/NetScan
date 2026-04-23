@@ -6,6 +6,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#include "ImGuiFileDialog.h"
+
 #include <GLFW/glfw3.h>
 #include <thread>
 
@@ -33,41 +35,63 @@ int run_gui()
 
         ImGui::Begin("NetScan");
 
-        // 👉 ввод пути
-        ImGui::InputText("PCAP", state.pcap_path, sizeof(state.pcap_path));
-
-        // 👉 кнопка
-        if (ImGui::Button("Start Scan") && !state.scan_running)
+        if (ImGuiFileDialog::Instance()->Display("ChoosePCAP"))
         {
-            state.scan_running = true;
-
-            std::thread([&state]()
+            if (ImGuiFileDialog::Instance()->IsOk())
             {
-                std::string out_dir;
+                std::string path = ImGuiFileDialog::Instance()->GetFilePathName();
 
-                if (!run_suricata_stage(std::string(state.pcap_path), out_dir))
-                {
-                    state.scan_running = false;
-                    return;
-                }
+                strncpy(state.pcap_path, path.c_str(), sizeof(state.pcap_path));
+                state.pcap_path[sizeof(state.pcap_path) - 1] = '\0'; // защита
+            }
 
-                auto result = parse_stage(out_dir + "/eve.json");
-
-                state.records = result.records;
-
-                auto db = load_db();
-                match_stage(result, db);
-
-                state.scan_running = false;
-
-            }).detach();
+            ImGuiFileDialog::Instance()->Close();
         }
 
-        // 👉 статус
+        if (ImGui::Button("Open PCAP"))
+        {
+            ImGuiFileDialog::Instance()->OpenDialog(
+                "ChoosePCAP",
+                "Select PCAP file",
+                ".pcap,.pcapng"
+            );
+        }
+
+        ImGui::Text("Selected: %s", state.pcap_path);
+        if (ImGui::Button("Start Scan") && !state.scan_running)
+        {
+            if (strlen(state.pcap_path) == 0)
+                    return 0;
+
+                state.scan_running = true;
+
+                std::thread([&state]()
+                {
+                    std::string out_dir;
+
+                    if (!run_suricata_stage(std::string(state.pcap_path), out_dir))
+                    {
+                        state.scan_running = false;
+                        return;
+                    }
+
+                    auto result = parse_stage(out_dir + "/eve.json");
+
+                    state.records = result.records;
+
+                    auto db = load_db();
+                    match_stage(result, db);
+
+                    state.scan_running = false;
+
+                }).detach();
+            }
+
+        //статус
         if (state.scan_running)
             ImGui::Text("Scanning...");
 
-        // 👉 вывод
+        // вывод
         ImGui::Separator();
         for (const auto& r : state.records)
         {
