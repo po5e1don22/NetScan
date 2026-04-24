@@ -23,7 +23,7 @@ FingerprintDB load_db()
     return load_fingerprints("data/fingerprints.json");
 }
 
-void match_stage(const ScanResult& result, const FingerprintDB& db)
+std::vector<MatchResult> match_stage(const ScanResult& result, const FingerprintDB& db)
 {
-    match_fingerprints(result.records, db);
+    return match_fingerprints(result.records, db);
 }

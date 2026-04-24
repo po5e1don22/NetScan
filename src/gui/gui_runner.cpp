@@ -1,3 +1,6 @@
+#include <cstring>
+#include <string>
+
 #include "gui_runner.h"
 #include "gui_state.h"
 #include "app/app.h"
@@ -84,7 +87,7 @@ int run_gui()
                     state.records = result.records;
 
                     auto db = load_db();
-                    match_stage(result, db);
+                    state.matches = match_stage(result, db);
 
                     state.scan_running = false;
 
@@ -97,12 +100,58 @@ int run_gui()
 
         // вывод
         ImGui::Separator();
-        for (const auto& r : state.records)
+        for (const auto& m : state.matches)
         {
-            ImGui::Text("%s -> %s | JA3: %s",
-                r.src_ip.c_str(),
-                r.dest_ip.c_str(),
-                r.ja3.c_str());
+            // 👉 Цвет по типу совпадения
+            ImVec4 color;
+            const char* tag;
+
+            if (m.match_type == "FULL")
+            {
+                color = ImVec4(0, 1, 0, 1);
+                tag = "[FULL]";
+            }
+            else if (m.match_type == "WEAK_JA3")
+            {
+                color = ImVec4(1, 1, 0, 1);
+                tag = "[JA3]";
+            }
+            else if (m.match_type == "WEAK_JA3S")
+            {
+                color = ImVec4(1, 0.5f, 0, 1);
+                tag = "[JA3S]";
+            }
+            else
+            {
+                color = ImVec4(1, 0, 0, 1);
+                tag = "[UNKNOWN]";
+            }
+
+            // 👉 Верхняя строка (IP + тип)
+            ImGui::Text("%s -> %s", 
+                m.src_ip.c_str(), 
+                m.dest_ip.c_str());
+
+            ImGui::SameLine();
+            ImGui::TextColored(color, "%s", tag);
+
+            // 👉 Детали
+            ImGui::Indent();
+
+            ImGui::Text("JA3: %s", m.ja3.c_str());
+            ImGui::Text("JA3S: %s", m.ja3s.c_str());
+
+            // 👉 Категория (если есть)
+            if (!m.category.empty())
+                ImGui::Text("Category: %s", m.category.c_str());
+
+            // 👉 Label (если есть)
+            if (!m.label.empty())
+                ImGui::Text("Label: %s", m.label.c_str());
+
+            ImGui::Unindent();
+
+            ImGui::Separator();
         }
 
         ImGui::End();
