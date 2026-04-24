@@ -14,7 +14,11 @@
 int run_gui()
 {
     glfwInit();
-    GLFWwindow* window = glfwCreateWindow(900, 600, "NetScan", nullptr, nullptr);
+    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+    GLFWwindow* window = glfwCreateWindow(1920, 1080, "NetScan", nullptr, nullptr);
     glfwMakeContextCurrent(window);
 
     IMGUI_CHECKVERSION();
@@ -42,7 +46,7 @@ int run_gui()
                 std::string path = ImGuiFileDialog::Instance()->GetFilePathName();
 
                 strncpy(state.pcap_path, path.c_str(), sizeof(state.pcap_path));
-                state.pcap_path[sizeof(state.pcap_path) - 1] = '\0'; // защита
+                state.pcap_path[sizeof(state.pcap_path) - 1] = '\0';
             }
 
             ImGuiFileDialog::Instance()->Close();
