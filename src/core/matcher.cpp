@@ -1,16 +1,20 @@
 #include "matcher.h"
 #include "ja3.h"
 #include "fingerprint_db.h"
-#include "db_writer.h"
 #include "unknown_queue.h"
 
 #include <vector>
-#include <unordered_map>
-#include <iostream>
+#include <mutex>
 
-std::vector<MatchResult> match_fingerprints(const std::vector<JA3Record>& records, const FingerprintDB& db)
+extern std::mutex queue_mutex;
+extern std::queue<JA3Record> unknown_queue;
+
+std::vector<MatchResult> match_fingerprints(
+    const std::vector<JA3Record>& records,
+    const FingerprintDB& db)
 {
     std::vector<MatchResult> results;
+    results.reserve(records.size());
 
     for (const auto& r : records)
     {
@@ -20,9 +24,11 @@ std::vector<MatchResult> match_fingerprints(const std::vector<JA3Record>& record
         res.ja3 = r.ja3;
         res.ja3s = r.ja3s;
 
+        // =========================
+        // 1. FULL MATCH
+        // =========================
         bool full_match_found = false;
 
-        // FULL MATCH
         if (!r.ja3.empty() && !r.ja3s.empty())
         {
             for (const auto& meta : db.full_pairs)
@@ -35,7 +41,6 @@ std::vector<MatchResult> match_fingerprints(const std::vector<JA3Record>& record
                     res.source = meta.source;
                     res.notes = meta.notes;
 
-                    results.push_back(res);
                     full_match_found = true;
                     break;
                 }
@@ -43,54 +48,68 @@ std::vector<MatchResult> match_fingerprints(const std::vector<JA3Record>& record
         }
 
         if (full_match_found)
+        {
+            results.push_back(res);
             continue;
+        }
 
-        // JA3 match
+        // =========================
+        // 2. CHECK JA3 / JA3S
+        // =========================
+        bool ja3_match = false;
+        bool ja3s_match = false;
+
+        FingerprintMeta ja3_meta{};
+        FingerprintMeta ja3s_meta{};
+
         if (!r.ja3.empty())
         {
             auto it = db.ja3_map.find(r.ja3);
             if (it != db.ja3_map.end())
             {
-                const auto& meta = it->second;
-
-                res.match_type = "WEAK_JA3";
-                res.label = meta.label;
-                res.category = meta.category;
-                res.source = meta.source;
-                res.notes = meta.notes;
-
-                results.push_back(res);
-                continue;
+                ja3_match = true;
+                ja3_meta = it->second;
             }
         }
 
-        // JA3S match
         if (!r.ja3s.empty())
         {
             auto it = db.ja3s_map.find(r.ja3s);
             if (it != db.ja3s_map.end())
             {
-                const auto& meta = it->second;
-
-                res.match_type = "WEAK_JA3S";
-                res.label = meta.label;
-                res.category = meta.category;
-                res.source = meta.source;
-                res.notes = meta.notes;
-
-                results.push_back(res);
-                continue;
+                ja3s_match = true;
+                ja3s_meta = it->second;
             }
         }
 
-        // UNKNOWN
-        res.match_type = "UNKNOWN";
-        results.push_back(res);
-
+        // =========================
+        // 3. DECISION
+        // =========================
+        if (ja3_match)
         {
+            res.match_type = "WEAK_JA3";
+            res.label = ja3_meta.label;
+            res.category = ja3_meta.category;
+            res.source = ja3_meta.source;
+            res.notes = ja3_meta.notes;
+        }
+        else if (ja3s_match)
+        {
+            res.match_type = "WEAK_JA3S";
+            res.label = ja3s_meta.label;
+            res.category = ja3s_meta.category;
+            res.source = ja3s_meta.source;
+            res.notes = ja3s_meta.notes;
+        }
+        else
+        {
+            res.match_type = "UNKNOWN";
+
             std::lock_guard<std::mutex> lock(queue_mutex);
             unknown_queue.push(r);
         }
+
+        results.push_back(res);
     }
 
     return results;
