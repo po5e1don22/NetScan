@@ -35,7 +35,12 @@ void process_unknowns()
 
         if (choice == 'y' || choice == 'Y')
         {
-            add_unknown_fingerprint(record, "data/fingerprints.json");
+            bool add_unknown_fingerprint(
+                const JA3Record& record,
+                const std::string& label,
+                const std::string& category,
+                const std::string& notes,
+                const std::string& db_path);
         }
     }
 }

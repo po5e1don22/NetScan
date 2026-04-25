@@ -260,7 +260,13 @@ int run_gui()
                     r.ja3 = m.ja3;
                     r.ja3s = m.ja3s;
 
-                    add_unknown_fingerprint(r, "data/fingerprints.json");
+                    bool added = add_unknown_fingerprint(
+                        r,
+                        state.input_label,
+                        state.input_category,
+                        state.input_notes,
+                        "data/fingerprints.json"
+                );
 
                     state.matches[state.selected_index].label = state.input_label;
                     state.matches[state.selected_index].category = state.input_category;
