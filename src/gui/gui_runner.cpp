@@ -46,6 +46,13 @@ int run_gui()
 
         ImGui::Begin("NetScan");
 
+        ImGui::SameLine(ImGui::GetWindowWidth() - 50);
+
+        if (ImGui::Button("CLose"))
+        {
+            glfwSetWindowShouldClose(window, true);
+}
+
         // ================= FILE DIALOG =================
         if (ImGuiFileDialog::Instance()->Display("ChoosePCAP"))
         {
@@ -181,8 +188,13 @@ int run_gui()
                 ImGui::Text("%s", m.ja3s.c_str());
 
                 ImGui::TableSetColumnIndex(5);
+
                 ImVec4 col = GetCategoryColor(m.category);
+                ImGui::PushStyleColor(ImGuiCol_Text, col);
+
                 ImGui::Text("%s", m.category.c_str());
+
+                ImGui::PopStyleColor();
 
                 ImGui::TableSetColumnIndex(6);
                 ImGui::Text("%s", m.label.c_str());
@@ -218,9 +230,6 @@ int run_gui()
 
             ImVec4 col = GetCategoryColor(CATEGORY_ITEMS[category_index]);
 
-            ImGui::Text("Category");
-            ImGui::SameLine();
-
             ImGui::PushStyleColor(ImGuiCol_Text, col);
 
             if (ImGui::BeginCombo("##category_combo", CATEGORY_ITEMS[category_index]))
@@ -242,8 +251,10 @@ int run_gui()
                 }
                 ImGui::EndCombo();
             }
-
             ImGui::PopStyleColor();
+            ImGui::SameLine();
+            
+            ImGui::Text("Category");
 
             strncpy(state.input_category, CATEGORY_ITEMS[category_index],
             sizeof(state.input_category));
@@ -283,7 +294,6 @@ int run_gui()
 
             ImGui::EndPopup();
         }
-
         ImGui::End();
 
         // ================= RENDER =================
