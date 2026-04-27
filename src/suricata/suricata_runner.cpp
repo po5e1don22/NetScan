@@ -50,3 +50,37 @@ std::string run_suricata(const std::string& pcap_file, const std::string& base_o
     }
     return output_dir;
 }
+
+std::string run_suricata_live(const std::string& base_output_dir, const std::string& interface)
+{
+    std::string output_dir = generate_output_dir(base_output_dir);
+
+    try
+    {
+        if (!std::filesystem::exists(output_dir))
+        {
+            std::filesystem::create_directories(output_dir);
+            std::cout << "[INFO] Created output directory: " << output_dir << std::endl;
+        }
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "[ERROR] Failed to create directory: " << e.what() << std::endl;
+        return "";
+    }
+
+    std::string command = "suricata -i "+ interface + " -l "  + output_dir + " &";
+
+    std::cout << "[INFO] Running LIVE: " << command << std::endl;
+
+    std::cout << "[DEBUG CMD] " << command << std::endl;
+    int result = std::system(command.c_str());
+
+    if (result != 0)
+    {
+        std::cerr << "[ERROR] Suricata failed: " << result << std::endl;
+        return "";
+    }
+
+    return output_dir;
+}

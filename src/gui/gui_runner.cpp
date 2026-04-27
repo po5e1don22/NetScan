@@ -2,11 +2,14 @@
 #include <string>
 #include <thread>
 #include <mutex>
+#include <unistd.h>
 
 #include "gui_runner.h"
 #include "gui_state.h"
 #include "app/app.h"
 #include "core/db_writer.h"
+#include "core/network_utils.h"
+#include "suricata/suricata_runner.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -36,6 +39,9 @@ int run_gui()
     GUIState state;
     std::mutex state_mutex;
 
+    static std::vector<std::string> interfaces = get_network_interfaces();
+    static int selected_interface = 0;
+
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -46,6 +52,7 @@ int run_gui()
 
         ImGui::Begin("NetScan");
 
+        // ================= CLOSE BUTTON =================
         ImGui::SameLine(ImGui::GetWindowWidth() - 50);
 
         if (ImGui::Button("CLose"))
@@ -77,7 +84,7 @@ int run_gui()
 
         ImGui::Text("Selected: %s", state.pcap_path);
 
-        // ================= START SCAN =================
+        // ================= PCAP SCAN =================
         bool can_run = strlen(state.pcap_path) > 0;
 
         if (!can_run)
@@ -112,8 +119,60 @@ int run_gui()
             }).detach();
         }
 
+        // ================= REALTIME SCAN =================
+        ImGui::Separator();
+
+        bool is_root = (geteuid() == 0);
+
+        ImGui::Text("Realtime mode:");
+
+        if (!is_root)
+        {
+            ImGui::TextColored(ImVec4(1,0,0,1),
+                "Run application with sudo to enable realtime scanning");
+        }
+
+        if (!is_root)
+            ImGui::BeginDisabled();
+
+        if (ImGui::Button("Start Realtime Scan") && !state.scan_running)
+        {
+            state.scan_running = true;
+
+        std::thread([iface = interfaces[selected_interface]]()
+        {
+            run_suricata_live("output", iface);
+        }).detach();
+        }
+
+        if (!is_root)
+            ImGui::EndDisabled();
+
         if (state.scan_running)
             ImGui::Text("Scanning...");
+
+        ImGui::SameLine();
+
+        ImGui::Text("Interface:");
+
+        const char* current_iface = interfaces.empty()
+            ? "none"
+            : interfaces[selected_interface].c_str();
+
+        if (ImGui::BeginCombo("##iface", current_iface))
+        {
+            for (int i = 0; i < interfaces.size(); i++)
+            {
+                bool selected = (selected_interface == i);
+
+                if (ImGui::Selectable(interfaces[i].c_str(), selected))
+                    selected_interface = i;
+
+                if (selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
 
         ImGui::Separator();
 

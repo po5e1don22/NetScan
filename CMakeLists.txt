@@ -22,7 +22,8 @@ set (SOURCES
     src/core/unknown_queue.cpp
     src/core/queue_worker.cpp
     src/gui/gui_runner.cpp
-    src/app/app.cpp)
+    src/app/app.cpp
+    src/core/network_utils.cpp)
 
 add_executable(NetScan 
     ${SOURCES}
