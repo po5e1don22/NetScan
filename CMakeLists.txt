@@ -20,7 +20,6 @@ set (SOURCES
     src/core/matcher.cpp
     src/core/db_writer.cpp
     src/core/unknown_queue.cpp
-    src/core/queue_worker.cpp
     src/gui/gui_runner.cpp
     src/app/app.cpp
     src/core/network_utils.cpp)

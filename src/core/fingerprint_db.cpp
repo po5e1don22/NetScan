@@ -81,10 +81,6 @@ FingerprintDB load_fingerprints(const std::string& path)
                     meta.notes = m["notes"];
             }
 
-            // =========================
-            // ВАЖНО: индексируем ВСЕГДА
-            // =========================
-
             if (!meta.ja3.empty())
             {
                 db.ja3_map[meta.ja3] = meta;

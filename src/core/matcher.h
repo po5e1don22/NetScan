@@ -22,3 +22,4 @@ struct MatchResult
 };
 
 std::vector<MatchResult> match_fingerprints(const std::vector<JA3Record>& records, const FingerprintDB& db);
+MatchResult match_single(const JA3Record& r, const FingerprintDB& db);

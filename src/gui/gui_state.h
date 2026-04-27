@@ -21,6 +21,8 @@ struct GUIState
     char input_label[128] = "";
     char input_category[64] = "";
     char input_notes[256] = "";
+
+    bool realtime_running = false;
 };
 
 static const char* CATEGORY_ITEMS[] = {

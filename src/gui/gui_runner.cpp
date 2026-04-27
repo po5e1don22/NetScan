@@ -10,6 +10,8 @@
 #include "core/db_writer.h"
 #include "core/network_utils.h"
 #include "suricata/suricata_runner.h"
+#include "core/matcher.h" 
+#include "third_party/json.hpp"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -135,14 +137,92 @@ int run_gui()
         if (!is_root)
             ImGui::BeginDisabled();
 
-        if (ImGui::Button("Start Realtime Scan") && !state.scan_running)
+        if (!state.realtime_running)
         {
-            state.scan_running = true;
+            if (ImGui::Button("Start Realtime Scan"))
+            {
+                state.realtime_running = true;
 
-        std::thread([iface = interfaces[selected_interface]]()
+                std::string iface = interfaces[selected_interface];
+
+                std::thread([&, iface]()
+                {
+                    std::string out_dir = run_suricata_live("output", iface);
+                    std::string eve_path = out_dir + "/eve.json";
+
+                    auto db = load_db();
+
+                    while (!std::filesystem::exists(eve_path) && state.realtime_running)
+                        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+                    std::ifstream file(eve_path);
+                    file.seekg(0, std::ios::end);
+
+                    std::string line;
+
+                    while (state.realtime_running)
+                    {
+                        if (std::getline(file, line))
+                        {
+                            try
+                            {
+                                auto j = nlohmann::json::parse(line);
+
+                                if (!j.contains("event_type") || j["event_type"] != "tls")
+                                    continue;
+
+                                auto& tls = j["tls"];
+
+                                JA3Record r;
+                                r.src_ip = j.value("src_ip", "");
+                                r.dest_ip = j.value("dest_ip", "");
+
+                                if (tls.contains("ja3"))
+                                    r.ja3 = tls["ja3"]["hash"];
+
+                                if (tls.contains("ja3s"))
+                                    r.ja3s = tls["ja3s"]["hash"];
+
+                                MatchResult m = match_single(r, db);
+
+                                {
+                                    std::lock_guard<std::mutex> lock(state_mutex);
+                                    state.matches.push_back(m);
+
+                                    if (state.matches.size() > 1000)
+                                        state.matches.erase(state.matches.begin());
+                                }
+                            }
+                            catch (...) {}
+                        }
+                        else
+                        {
+                            file.clear();
+                            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                        }
+                    }
+
+                    system("pkill suricata");
+
+                }).detach();
+
+                if (state.realtime_running)
+                {
+                    ImGui::SameLine();
+                    ImGui::TextColored(ImVec4(0,1,0,1), "ACTIVE");
+                }
+            }
+        }
+        else
         {
-            run_suricata_live("output", iface);
-        }).detach();
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1));
+
+            if (ImGui::Button("Stop Realtime Scan"))
+            {
+                state.realtime_running = false;
+            }
+
+            ImGui::PopStyleColor();
         }
 
         if (!is_root)
@@ -153,7 +233,12 @@ int run_gui()
 
         ImGui::SameLine();
 
+       ImGui::SameLine();
+
         ImGui::Text("Interface:");
+        ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(150);
 
         const char* current_iface = interfaces.empty()
             ? "none"
@@ -173,7 +258,6 @@ int run_gui()
             }
             ImGui::EndCombo();
         }
-
         ImGui::Separator();
 
         // ================= TABLE =================

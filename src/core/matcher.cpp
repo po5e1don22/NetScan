@@ -114,3 +114,82 @@ std::vector<MatchResult> match_fingerprints(
 
     return results;
 }
+
+MatchResult match_single(const JA3Record& r, const FingerprintDB& db)
+{
+    MatchResult res;
+
+    res.src_ip = r.src_ip;
+    res.dest_ip = r.dest_ip;
+    res.ja3 = r.ja3;
+    res.ja3s = r.ja3s;
+
+    // =========================
+    // 1. FULL MATCH
+    // =========================
+    if (!r.ja3.empty() && !r.ja3s.empty())
+    {
+        for (const auto& meta : db.full_pairs)
+        {
+            if (meta.ja3 == r.ja3 && meta.ja3s == r.ja3s)
+            {
+                res.match_type = "FULL";
+                res.label = meta.label;
+                res.category = meta.category;
+                res.source = meta.source;
+                res.notes = meta.notes;
+
+                return res;
+            }
+        }
+    }
+
+    // =========================
+    // 2. JA3 / JA3S
+    // =========================
+    if (!r.ja3.empty())
+    {
+        auto it = db.ja3_map.find(r.ja3);
+        if (it != db.ja3_map.end())
+        {
+            const auto& meta = it->second;
+
+            res.match_type = "WEAK_JA3";
+            res.label = meta.label;
+            res.category = meta.category;
+            res.source = meta.source;
+            res.notes = meta.notes;
+
+            return res;
+        }
+    }
+
+    if (!r.ja3s.empty())
+    {
+        auto it = db.ja3s_map.find(r.ja3s);
+        if (it != db.ja3s_map.end())
+        {
+            const auto& meta = it->second;
+
+            res.match_type = "WEAK_JA3S";
+            res.label = meta.label;
+            res.category = meta.category;
+            res.source = meta.source;
+            res.notes = meta.notes;
+
+            return res;
+        }
+    }
+
+    // =========================
+    // 3. UNKNOWN
+    // =========================
+    res.match_type = "UNKNOWN";
+
+    {
+        std::lock_guard<std::mutex> lock(queue_mutex);
+        unknown_queue.push(r);
+    }
+
+    return res;
+}

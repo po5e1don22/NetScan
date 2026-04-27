@@ -20,7 +20,6 @@ std::vector<std::string> get_network_interfaces()
 
         std::string name = ifa->ifa_name;
 
-        // 👉 фильтр (по желанию)
         if (name == "lo")
             continue;
 
