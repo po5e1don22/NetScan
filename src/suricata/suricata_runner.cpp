@@ -5,6 +5,13 @@
 #include <iomanip>
 #include <sstream>
 
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <signal.h>
+
+#include "suricata_runner.h"
+
 //unique directory name generator 
 std::string generate_output_dir (const std::string& base_dir)
 {
@@ -51,7 +58,7 @@ std::string run_suricata(const std::string& pcap_file, const std::string& base_o
     return output_dir;
 }
 
-std::string run_suricata_live(const std::string& base_output_dir, const std::string& interface)
+SuricataProcess run_suricata_live(const std::string& base_output_dir, const std::string& interface)
 {
     std::string output_dir = generate_output_dir(base_output_dir);
 
@@ -66,21 +73,32 @@ std::string run_suricata_live(const std::string& base_output_dir, const std::str
     catch (const std::exception& e)
     {
         std::cerr << "[ERROR] Failed to create directory: " << e.what() << std::endl;
-        return "";
+        return {-1, ""};
     }
 
-    std::string command = "suricata -i "+ interface + " -l "  + output_dir + " -c config/suricata.yaml";
+    std::cout << "[INFO] Running LIVE: suricata -i " << interface
+              << " -l " << output_dir
+              << " -c config/suricata.yaml" << std::endl;
 
-    std::cout << "[INFO] Running LIVE: " << command << std::endl;
+    pid_t pid = fork();
 
-    std::cout << "[DEBUG CMD] " << command << std::endl;
-    int result = std::system(command.c_str());
-
-    if (result != 0)
+    if (pid == 0)
     {
-        std::cerr << "[ERROR] Suricata failed: " << result << std::endl;
-        return "";
+        // CHILD
+        execlp(
+            "suricata",
+            "suricata",
+            "-i", interface.c_str(),
+            "-l", output_dir.c_str(),
+            "-c", "config/suricata.yaml",
+            (char*)nullptr
+        );
+
+        // если exec не сработал
+        std::cerr << "[ERROR] exec failed\n";
+        exit(1);
     }
 
-    return output_dir;
+    // PARENT
+    return {pid, output_dir};
 }

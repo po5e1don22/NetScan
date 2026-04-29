@@ -3,6 +3,11 @@
 #include <thread>
 #include <mutex>
 #include <unistd.h>
+#include <atomic>
+
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "gui_runner.h"
 #include "gui_state.h"
@@ -23,6 +28,9 @@
 
 int run_gui()
 {
+    std::thread realtime_thread;
+    std::atomic<bool> stop_flag = false;
+
     glfwInit();
     glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
     glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
@@ -150,14 +158,30 @@ int run_gui()
 
                 std::string iface = interfaces[selected_interface];
 
-                std::thread([&, iface]()
+                stop_flag = false;
+
+                realtime_thread = std::thread([&, iface]()
                 {
-                    std::string out_dir = run_suricata_live("output", iface);
+                    auto proc = run_suricata_live("output", iface);
+                    pid_t suricata_pid = proc.pid;
+                    std::string out_dir = proc.output_dir;
+
+                    // 🔴 ВОТ СЮДА ВСТАВИТЬ
+                    if (stop_flag)
+                    {
+                        if (suricata_pid > 0)
+                        {
+                            kill(suricata_pid, SIGTERM);
+                            waitpid(suricata_pid, nullptr, 0);
+                        }
+                        return;
+                    }
+
                     std::string eve_path = out_dir + "/eve.json";
 
                     auto db = load_db();
 
-                    while (!std::filesystem::exists(eve_path) && state.realtime_running)
+                    while (!std::filesystem::exists(eve_path) && !stop_flag)
                         std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
                     std::ifstream file(eve_path);
@@ -165,7 +189,7 @@ int run_gui()
 
                     std::string line;
 
-                    while (state.realtime_running)
+                    while (!stop_flag)
                     {
                         if (std::getline(file, line))
                         {
@@ -207,9 +231,12 @@ int run_gui()
                         }
                     }
 
-                    system("pkill suricata");
-
-                }).detach();
+                    if (suricata_pid > 0)
+                    {
+                        kill(suricata_pid, SIGTERM);
+                        waitpid(suricata_pid, nullptr, 0);
+                    }
+                });
 
                 if (state.realtime_running)
                 {
@@ -225,6 +252,7 @@ int run_gui()
             if (ImGui::Button("Stop Realtime Scan"))
             {
                 state.realtime_running = false;
+                stop_flag = true;
             }
 
             ImGui::PopStyleColor();
@@ -458,7 +486,17 @@ int run_gui()
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
+
+        if (!state.realtime_running && realtime_thread.joinable())
+        {
+            realtime_thread.join();
+        }
     }
+
+    stop_flag = true;
+
+    if (realtime_thread.joinable())
+        realtime_thread.join();
 
     return 0;
 }
