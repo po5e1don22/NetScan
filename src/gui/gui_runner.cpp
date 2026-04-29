@@ -25,15 +25,18 @@ int run_gui()
 {
     glfwInit();
     glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
-    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+    glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
 
-    GLFWwindow* window = glfwCreateWindow(1920, 1080, "NetScan", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1200, 800, "NetScan", nullptr, nullptr);
     glfwMakeContextCurrent(window);
 
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.IniFilename = "config/imgui.ini";
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 130");
@@ -52,18 +55,20 @@ int run_gui()
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::Begin("NetScan");
+        int w, h;
+        glfwGetFramebufferSize(window, &w, &h);
 
-        // ================= CLOSE BUTTON =================
-        ImGui::SameLine(ImGui::GetWindowWidth() - 50);
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(ImVec2((float)w, (float)h));
 
-        if (ImGui::Button("CLose"))
-        {
-            glfwSetWindowShouldClose(window, true);
-}
+        ImGui::Begin("NetScan", nullptr,
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoTitleBar);
 
-        // ================= FILE DIALOG =================
-        if (ImGuiFileDialog::Instance()->Display("ChoosePCAP"))
+         // ================= FILE DIALOG =================
+        if (ImGuiFileDialog::Instance()->Display("ChoosePCAP", ImGuiWindowFlags_NoCollapse, ImVec2(900, 600)))
         {
             if (ImGuiFileDialog::Instance()->IsOk())
             {
@@ -263,7 +268,7 @@ int run_gui()
         // ================= TABLE =================
         bool open_popup = false;
 
-        if (ImGui::BeginTable("ResultsTable", 7,
+        if (ImGui::BeginTable("ResultsTable", 8,
             ImGuiTableFlags_Borders |
             ImGuiTableFlags_RowBg |
             ImGuiTableFlags_Resizable |
@@ -277,6 +282,7 @@ int run_gui()
             ImGui::TableSetupColumn("JA3S");
             ImGui::TableSetupColumn("Category");
             ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Note");
             ImGui::TableHeadersRow();
 
             for (int i = 0; i < (int)state.matches.size(); i++)
@@ -341,6 +347,9 @@ int run_gui()
 
                 ImGui::TableSetColumnIndex(6);
                 ImGui::Text("%s", m.label.c_str());
+
+                ImGui::TableSetColumnIndex(7);
+                ImGui::Text("%s", m.notes.c_str());
 
                 ImGui::PopID();
             }
@@ -442,7 +451,6 @@ int run_gui()
         // ================= RENDER =================
         ImGui::Render();
 
-        int w, h;
         glfwGetFramebufferSize(window, &w, &h);
 
         glViewport(0, 0, w, h);

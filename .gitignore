@@ -2,4 +2,4 @@ build/
 temp/
 output/
 
-imgui.ini
+config/imgui.ini

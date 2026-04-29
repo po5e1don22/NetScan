@@ -38,7 +38,7 @@ std::string run_suricata(const std::string& pcap_file, const std::string& base_o
     }
 
     //suricata run command 
-    std::string command = "suricata -r " + pcap_file + " -l " + output_dir;
+    std::string command = "suricata -r " + pcap_file + " -l " + output_dir + " -c config/suricata.yaml ";
 
     std::cout << "[INFO] Running: " << command << std::endl;
     int result = std::system(command.c_str());
@@ -69,7 +69,7 @@ std::string run_suricata_live(const std::string& base_output_dir, const std::str
         return "";
     }
 
-    std::string command = "suricata -i "+ interface + " -l "  + output_dir + " &";
+    std::string command = "suricata -i "+ interface + " -l "  + output_dir + " -c config/suricata.yaml";
 
     std::cout << "[INFO] Running LIVE: " << command << std::endl;
 
